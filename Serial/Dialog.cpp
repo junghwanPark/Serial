@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Dialog.h"
 #include "SerialPort.h"
+#include "SerialAddinHelper.h"
+#include "SerialAddinBase.h"
 
 #define DIALOG_TITLE "LocoField Serial v.2.0"
 
@@ -106,6 +108,41 @@ void Dialog::initialize()
 
 		menuView->addAction(actionAlwaysOnTop);
 		menu->addMenu(menuView);
+	}
+
+	QMenu* menuAddin = new QMenu("Addin");
+	{
+		QAction* actionLoadAddin = new QAction("Load");
+		connect(actionLoadAddin, &QAction::triggered, [&]()
+		{
+			// test
+			HMODULE module = LoadLibraryA((QCoreApplication::applicationDirPath() + "/SerialAddin.dll").toStdString().c_str());
+
+			SerialAddin loadAddin = reinterpret_cast<SerialAddin>(GetProcAddress(module, "loadAddin"));
+			if( loadAddin == nullptr )
+			{
+				cout << "ERROR: invalid addin." << endl;
+
+				FreeLibrary(module);
+				return;
+			}
+
+			SerialAddinBase* object = loadAddin();
+
+			SerialAddinHelper addinHelper(object);
+			addinHelper.start();
+
+			while (addinHelper.isRunning())
+			{
+				Sleep(1000);
+			}
+
+			delete object;
+			FreeLibrary(module);
+		});
+
+		menuAddin->addAction(actionLoadAddin);
+		menu->addMenu(menuAddin);
 	}
 
 	setWindowTitle(DIALOG_TITLE);

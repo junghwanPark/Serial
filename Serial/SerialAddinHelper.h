@@ -6,12 +6,11 @@ class SerialPort;
 class SerialAddinHelper final
 {
 public:
-	SerialAddinHelper();
+	SerialAddinHelper(SerialAddinBase*);
 	~SerialAddinHelper();
 
 private:
 	bool running = false;
-	bool finished = true;
 
 	static void onThread(void* arg)
 	{
@@ -20,13 +19,14 @@ private:
 	}
 
 public:
-	bool start();
+	void start();
 	void stop();
+	bool isRunning();
 
 protected:
 	void onThreadFunction();
 
-	SerialAddinBase* addin = nullptr;
+	SerialAddinBase* addin;
 	std::vector<SerialPort*> serialPorts;
 
 };

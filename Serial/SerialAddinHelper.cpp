@@ -5,7 +5,8 @@
 
 #include <thread>
 
-SerialAddinHelper::SerialAddinHelper()
+SerialAddinHelper::SerialAddinHelper(SerialAddinBase* addin)
+	: addin(addin)
 {
 }
 
@@ -14,50 +15,46 @@ SerialAddinHelper::~SerialAddinHelper()
 	stop();
 }
 
-bool SerialAddinHelper::start()
+void SerialAddinHelper::start()
 {
-	if (addin == nullptr)
-		return false;
-
-	for (auto& serialPort : serialPorts)
-	{
-		serialPort->setAutoRead(false);
-	}
-
 	running = true;
-	finished = false;
 	std::thread(onThread, this).detach();
-
-	return true;
 }
 
 void SerialAddinHelper::stop()
 {
 	running = false;
+}
 
-	while (finished == false)
-		Sleep(100);
-
-	for (auto& serialPort : serialPorts)
-	{
-		serialPort->setAutoRead(true);
-	}
+bool SerialAddinHelper::isRunning()
+{
+	return running;
 }
 
 void SerialAddinHelper::onThreadFunction()
 {
+	for (auto& serialPort : serialPorts)
+	{
+		serialPort->setAutoRead(false);
+	}
+
 	while (running)
 	{
-		for (size_t i = 0; i < serialPorts.size(); i++)
+		for( size_t i = 0; i < serialPorts.size();)
 		{
 			QByteArray buffer = serialPorts[i]->read(1);
-			if (buffer.isEmpty())
-				continue;
+			if( buffer.isEmpty() )
+			{
+				i++;
+			}
 
 			addin->recvQueue.push_back({ i, {buffer.begin(), buffer.end()} });
 		}
 
 		addin->callback();
+
+		if (addin->status() < 0)
+			break;
 
 		while (addin->sendQueue.size() > 0)
 		{
@@ -66,5 +63,10 @@ void SerialAddinHelper::onThreadFunction()
 		}
 	}
 
-	finished = true;
+	running = false;
+
+	for (auto& serialPort : serialPorts)
+	{
+		serialPort->setAutoRead(true);
+	}
 }

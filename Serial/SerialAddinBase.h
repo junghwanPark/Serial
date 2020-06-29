@@ -21,6 +21,8 @@ class SerialAddinBase
 
 protected:
 	SerialAddinBase() = default;
+
+public:
 	virtual ~SerialAddinBase() = default;
 
 public:
@@ -33,3 +35,5 @@ protected:
 	std::deque<MultiSerialData> recvQueue;
 
 };
+
+typedef SerialAddinBase* (*SerialAddin)();
